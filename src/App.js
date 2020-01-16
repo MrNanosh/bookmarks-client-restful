@@ -1,9 +1,12 @@
-import React, { Component } from 'react';
+import React, {
+  Component
+} from 'react';
 import AddBookmark from './AddBookmark/AddBookmark';
 import BookmarkList from './BookmarkList/BookmarkList';
 import Nav from './Nav/Nav';
 import config from './config';
 import './App.css';
+import { ApiContext } from './ApiContext';
 
 const bookmarks = [
   // {
@@ -33,65 +36,124 @@ class App extends Component {
   state = {
     page: 'list',
     bookmarks,
-    error: null,
+    error: null
   };
 
-  changePage = (page) => {
-    this.setState({ page })
-  }
+  changePage = page => {
+    this.setState({ page });
+  };
 
   setBookmarks = bookmarks => {
     this.setState({
       bookmarks,
       error: null,
-      page: 'list',
-    })
-  }
+      page: 'list'
+    });
+  };
 
   addBookmark = bookmark => {
     this.setState({
-      bookmarks: [ ...this.state.bookmarks, bookmark ],
-    })
-  }
+      bookmarks: [
+        ...this.state.bookmarks,
+        bookmark
+      ]
+    });
+  };
+
+  updateBookmark = (fields, id) => {
+    const hasId = bookmark =>
+      bookmark.id === id;
+    const bookmarkIndex = this.state.bookmarks.findIndex(
+      hasId
+    );
+
+    const bookmark = {
+      ...this.state.bookmarks[
+        bookmarkIndex
+      ],
+      ...fields
+    };
+
+    this.setState({
+      bookmarks: [
+        ...this.state.bookmarks.slice(
+          0,
+          bookmarkIndex
+        ),
+        bookmark,
+        ...this.state.bookmarks.slice(
+          bookmarkIndex + 1
+        )
+      ]
+    });
+  };
 
   componentDidMount() {
     fetch(config.API_ENDPOINT, {
       method: 'GET',
       headers: {
-        'content-type': 'application/json',
-        'Authorization': `Bearer ${config.API_KEY}`
+        'content-type':
+          'application/json',
+        Authorization: `Bearer ${config.API_KEY}`
       }
     })
       .then(res => {
         if (!res.ok) {
-          throw new Error(res.status)
+          throw new Error(res.status);
         }
-        return res.json()
+        return res.json();
       })
       .then(this.setBookmarks)
-      .catch(error => this.setState({ error }))
+      .catch(error =>
+        this.setState({ error })
+      );
   }
 
   render() {
-    const { page, bookmarks } = this.state
+    const {
+      page,
+      bookmarks
+    } = this.state;
+    const contextValue = {
+      onClickCancel: () =>
+        this.changePage('list'),
+      updateBookmark: this
+        .updateBookmark
+    };
+
     return (
-      <main className='App'>
-        <h1>Bookmarks!</h1>
-        <Nav clickPage={this.changePage} />
-        <div className='content' aria-live='polite'>
-          {page === 'add' && (
-            <AddBookmark
-              onAddBookmark={this.addBookmark}
-              onClickCancel={() => this.changePage('list')}
-            />
-          )}
-          {page === 'list' && (
-            <BookmarkList
-              bookmarks={bookmarks}
-            />
-          )}
-        </div>
-      </main>
+      <ApiContext.Provider
+        value={contextValue}
+      >
+        <main className="App">
+          <h1>Bookmarks!</h1>
+          <Nav
+            clickPage={this.changePage}
+          />
+          <div
+            className="content"
+            aria-live="polite"
+          >
+            {page === 'add' && (
+              <AddBookmark
+                onAddBookmark={
+                  this.addBookmark
+                }
+                onClickCancel={() =>
+                  this.changePage(
+                    'list'
+                  )
+                }
+              />
+            )}
+            {page === 'list' && (
+              <BookmarkList
+                bookmarks={bookmarks}
+              />
+            )}
+          </div>
+        </main>
+      </ApiContext.Provider>
     );
   }
 }
